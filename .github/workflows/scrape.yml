@@ -1,0 +1,32 @@
+name: Update Outage Data
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Каждые 30 минут
+  workflow_dispatch: # Позволяет запустить вручную
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Run scraper
+        run: python scraper.py
+
+      - name: Commit and push if changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update outage data"
+          file_pattern: "data.json"
