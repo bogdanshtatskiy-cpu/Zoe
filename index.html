@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ZOE Outage Monitor</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>Статус отключений (Запорожьеоблэнерго)</h1>
+    <div id="last-update"></div>
+    <pre id="content">Загрузка данных...</pre>
+
+    <script>
+        // Загружаем JSON, который создал наш скрипт
+        fetch('data.json')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('last-update').innerText = "Обновлено: " + data.last_update;
+                document.getElementById('content').innerText = JSON.stringify(data.data, null, 2);
+            })
+            .catch(err => {
+                document.getElementById('content').innerText = "Ошибка загрузки: " + err;
+            });
+    </script>
+</body>
+</html>
