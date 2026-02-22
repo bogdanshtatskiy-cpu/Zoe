@@ -1,4 +1,4 @@
 {
   "status": "error",
-  "message": "Page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://www.zoe.com.ua/outage/\", waiting until \"networkidle\"\n"
+  "message": "Page.goto: net::ERR_NETWORK_CHANGED at https://www.zoe.com.ua/outage/\nCall log:\n  - navigating to \"https://www.zoe.com.ua/outage/\", waiting until \"networkidle\"\n"
 }
