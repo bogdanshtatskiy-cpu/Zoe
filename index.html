@@ -1,25 +1,164 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>ZOE Outage Monitor</title>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мониторинг ZOE — Графики отключений</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --accent-color: #007bff;
+            --error-color: #dc3545;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .update-time {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        tr:nth-child(even) { background-color: #fafafa; }
+        
+        .error-msg {
+            color: var(--error-color);
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+        }
+        .loader {
+            text-align: center;
+            padding: 40px;
+            font-style: italic;
+            color: var(--accent-color);
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #e2e8f0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Статус отключений (Запорожьеоблэнерго)</h1>
-    <div id="last-update"></div>
-    <pre id="content">Загрузка данных...</pre>
 
-    <script>
-        // Загружаем JSON, который создал наш скрипт
-        fetch('data.json')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('last-update').innerText = "Обновлено: " + data.last_update;
-                document.getElementById('content').innerText = JSON.stringify(data.data, null, 2);
-            })
-            .catch(err => {
-                document.getElementById('content').innerText = "Ошибка загрузки: " + err;
-            });
-    </script>
+<div class="container">
+    <div class="header">
+        <h1>Графики ZOE (Запорожье)</h1>
+        <div id="meta-info"></div>
+    </div>
+
+    <div id="main-content">
+        <div class="loader">Связываюсь с сервером и ищу данные...</div>
+    </div>
+</div>
+
+<script>
+    async function loadData() {
+        const contentDiv = document.getElementById('main-content');
+        const metaDiv = document.getElementById('meta-info');
+
+        try {
+            // Добавляем timestamp для обхода кэша браузера
+            const response = await fetch('data.json?t=' + Date.now());
+            
+            if (!response.ok) {
+                throw new Error(`Файл data.json не найден. Скорее всего, GitHub Action еще не завершил первый запуск.`);
+            }
+
+            const result = await response.json();
+
+            // Если в JSON статус ошибки от парсера
+            if (result.status === 'error') {
+                contentDiv.innerHTML = `
+                    <div class="error-msg">
+                        <strong>Ошибка парсера:</strong><br>
+                        ${result.message}
+                    </div>`;
+                return;
+            }
+
+            // Выводим время обновления
+            metaDiv.innerHTML = `<div class="update-time">Последнее обновление: <b>${result.last_update}</b></div>`;
+
+            // Генерируем таблицы
+            let tablesHtml = '';
+            
+            if (result.data && result.data.length > 0) {
+                result.data.forEach((tableObj, index) => {
+                    const tableName = Object.keys(tableObj)[0];
+                    const rows = tableObj[tableName];
+                    
+                    tablesHtml += `<div class="status-card"><h3>Таблица №${index + 1}</h3><table>`;
+                    
+                    rows.forEach((row, rowIndex) => {
+                        tablesHtml += '<tr>';
+                        row.forEach(cell => {
+                            const tag = rowIndex === 0 ? 'th' : 'td';
+                            tablesHtml += `<${tag}>${cell}</${tag}>`;
+                        });
+                        tablesHtml += '</tr>';
+                    });
+                    
+                    tablesHtml += '</table></div>';
+                });
+                contentDiv.innerHTML = tablesHtml;
+            } else {
+                contentDiv.innerHTML = '<div class="status-card">Данные найдены, но графики на сайте сейчас отсутствуют.</div>';
+            }
+
+        } catch (error) {
+            contentDiv.innerHTML = `
+                <div class="error-msg">
+                    <strong>Упс! Что-то пошло не так:</strong><br>
+                    ${error.message}<br><br>
+                    <small>Проверьте вкладку <b>Actions</b> в вашем репозитории — возможно, скрипт упал там.</small>
+                </div>`;
+        }
+    }
+
+    loadData();
+</script>
+
 </body>
 </html>
